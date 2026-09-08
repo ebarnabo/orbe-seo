@@ -1,6 +1,8 @@
-import { useMemo, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { toPng } from "html-to-image";
 import Infographic from "./Infographic.jsx";
+import MotionShow from "./MotionShow.jsx";
+import Sky from "./Sky.jsx";
 
 const HIT_LABEL = {
   title: "Titre",
@@ -10,73 +12,6 @@ const HIT_LABEL = {
   first: "Intro",
   alts: "Images",
 };
-
-function Story({ data, onSkip }) {
-  const [i, setI] = useState(0);
-  const slides = useMemo(() => {
-    const top = data.keywords[0];
-    return [
-      {
-        k: "Lecture",
-        t: data.host,
-        p: data.title || "Page analysée. Voici ce que Google voit vraiment.",
-      },
-      {
-        k: "Score",
-        t: `${data.overall} / 100`,
-        p: data.verdict.line,
-      },
-      top
-        ? {
-            k: "Mot-clé",
-            t: top.keyword,
-            p: `Fit on-page ${top.score}/100 · ${top.label}. ${top.tip}`,
-          }
-        : {
-            k: "Mots-clés",
-            t: "Aucun mot-clé ciblé",
-            p: "Ajoute 2 ou 3 intentions de recherche pour mesurer le fit.",
-          },
-      {
-        k: "À faire",
-        t: data.recos[0]?.priority || "Suite",
-        p: data.recos[0]?.text || "Rien de bloquant détecté.",
-      },
-    ];
-  }, [data]);
-
-  const last = i >= slides.length - 1;
-  const s = slides[Math.min(i, slides.length - 1)];
-
-  return (
-    <div className="story">
-      <button className="ghost skip" type="button" onClick={onSkip}>
-        Passer
-      </button>
-      <div className="slide" key={s.t}>
-        <div className="kicker">{s.k}</div>
-        <h2>{s.t}</h2>
-        <p>{s.p}</p>
-        <div className="toolbar" style={{ marginTop: 8 }}>
-          {last ? (
-            <button className="solid" type="button" onClick={onSkip}>
-              Voir l’infographie
-            </button>
-          ) : (
-            <button className="solid" type="button" onClick={() => setI((n) => n + 1)}>
-              Continuer
-            </button>
-          )}
-        </div>
-      </div>
-      <div className="dots">
-        {slides.map((_, n) => (
-          <b key={n} className={n === i ? "on" : ""} />
-        ))}
-      </div>
-    </div>
-  );
-}
 
 export default function App() {
   const [url, setUrl] = useState("");
@@ -105,7 +40,7 @@ export default function App() {
       if (!res.ok) throw new Error(json.error || "Analyse impossible");
       setData(json);
     } catch (err) {
-      setError(err.message || "Réseau indisponible");
+      setError(err.message || "Reseau indisponible");
     } finally {
       setLoading(false);
     }
@@ -116,7 +51,7 @@ export default function App() {
     return toPng(cardRef.current, {
       pixelRatio: 2,
       cacheBust: true,
-      backgroundColor: "#0f1117",
+      backgroundColor: "#d7ecf3",
     });
   }
 
@@ -126,13 +61,12 @@ export default function App() {
       const blob = await (await fetch(dataUrl)).blob();
       if (navigator.clipboard && window.ClipboardItem) {
         await navigator.clipboard.write([new ClipboardItem({ "image/png": blob })]);
-        setCopied("Infographie copiée");
+        setCopied("Carte copiee");
       } else {
         downloadCard(dataUrl);
       }
     } catch {
-      const dataUrl = await raster();
-      downloadCard(dataUrl);
+      downloadCard(await raster());
     }
   }
 
@@ -141,46 +75,40 @@ export default function App() {
     a.href = dataUrl;
     a.download = `orbe-${data?.host || "audit"}.png`;
     a.click();
-    setCopied("PNG téléchargé");
-  }
-
-  async function saveCard() {
-    const dataUrl = await raster();
-    downloadCard(dataUrl);
+    setCopied("PNG enregistre");
   }
 
   return (
     <div className="app">
+      <Sky />
       <div className="wrap">
         <nav className="nav">
           <a className="brand" href="/">
-            <div className="mark">
-              <i />
-            </div>
+            <div className="mark"><i /></div>
             <div>
-              <strong>Orbe</strong>
-              <span>SEO lisible</span>
+              <strong>ORBE</strong>
+              <span>le ciel de ta page</span>
             </div>
           </a>
-          <div className="pill">Gratuit · 1 URL</div>
+          <div className="pill">Lecture gratuite · 1 URL</div>
         </nav>
 
         <header className="hero">
           <h1>
-            La perf SEO,
+            Un matin clair
             <br />
-            <em>en une carte.</em>
+            <em>pour ton SEO.</em>
           </h1>
           <p>
-            Colle l’URL. Ajoute des mots-clés — ou laisse vide, on les déduit. Résultat : une
-            infographie animée, skippable, copiable.
+            Colle l'URL. Les mots-cles sont optionnels. Le ciel se dechire, le soleil donne le
+            score, les cerfs-volants portent les requetes. Tu peux tout passer.
           </p>
         </header>
 
         <form className="panel" onSubmit={run}>
           <div className="fields">
             <label>
-              <span>URL du site ou de la page</span>
+              <span>URL</span>
               <input
                 value={url}
                 onChange={(e) => setUrl(e.target.value)}
@@ -190,17 +118,17 @@ export default function App() {
               />
             </label>
             <label>
-              <span>Mots-clés (optionnel)</span>
+              <span>Mots-cles — optionnel</span>
               <textarea
                 value={keywords}
                 onChange={(e) => setKeywords(e.target.value)}
-                placeholder="un par ligne, ou séparés par des virgules — ex. audit seo, core web vitals"
+                placeholder="un par ligne, ou separes par des virgules"
               />
             </label>
             <div className="row">
-              <p className="hint">Sans mots-clés : extraction depuis titre, H1 et sous-titres.</p>
+              <p className="hint">Sans mots-cles, on les cueille dans le titre et les Hn.</p>
               <button className="go" type="submit" disabled={loading}>
-                {loading ? "Lecture de la page…" : "Analyser"}
+                {loading ? "Les nuages se levent…" : "Lire la page"}
               </button>
             </div>
           </div>
@@ -210,18 +138,18 @@ export default function App() {
         {data && (
           <section className="stage">
             {story ? (
-              <Story data={data} onSkip={() => setStory(false)} />
+              <MotionShow data={data} onSkip={() => setStory(false)} />
             ) : (
               <>
                 <div className="toolbar">
                   <button className="solid" type="button" onClick={copyCard}>
-                    {copied || "Copier l’infographie"}
+                    {copied || "Copier la carte"}
                   </button>
-                  <button className="ghost" type="button" onClick={saveCard}>
-                    Télécharger PNG
+                  <button className="ghost" type="button" onClick={async () => downloadCard(await raster())}>
+                    Telecharger PNG
                   </button>
                   <button className="ghost" type="button" onClick={() => setStory(true)}>
-                    Rejouer
+                    Rejouer le ciel
                   </button>
                 </div>
 
@@ -229,9 +157,8 @@ export default function App() {
                   <div className="card-shell">
                     <Infographic ref={cardRef} data={data} />
                   </div>
-
                   <div className="detail">
-                    <h3>Ce que ça veut dire</h3>
+                    <h3>Ce que le ciel raconte</h3>
                     <div>
                       {data.checks.map((c) => (
                         <div className="check" key={c.id}>
@@ -247,15 +174,13 @@ export default function App() {
                 </div>
 
                 <div className="detail">
-                  <h3>
-                    {data.source === "user" ? "Tes mots-clés" : "Mots-clés détectés"}
-                  </h3>
+                  <h3>{data.source === "user" ? "Tes mots-cles" : "Mots cueillis"}</h3>
                   <div className="kw-list">
                     {data.keywords.map((k) => (
                       <div className="kw-card" key={k.keyword}>
                         <header className="row">
                           <h4>{k.keyword}</h4>
-                          <b style={{ fontFamily: "Syne, sans-serif" }}>{k.score}</b>
+                          <b style={{ fontFamily: "Shippori Mincho, serif" }}>{k.score}</b>
                         </header>
                         <div className="tags">
                           {Object.entries(k.hits).map(([key, on]) => (
@@ -276,10 +201,10 @@ export default function App() {
                             }`}
                           >
                             {k.visibility.status === "visible"
-                              ? "Signal de visibilité : la page apparaît dans un moteur pour cette requête ciblée."
+                              ? "Un moteur trouve la page pour cette requete ciblee."
                               : k.visibility.status === "absent"
-                              ? "Pas de résultat évident pour « mot-clé + site ». Page trop neuve, noindex, ou hors intention."
-                              : "Visibilité web non confirmée (moteur saturé)."}
+                              ? "Pas de trace evidente pour mot-cle + site."
+                              : "Ciel voile : visibilite non confirmee."}
                           </p>
                         )}
                       </div>
